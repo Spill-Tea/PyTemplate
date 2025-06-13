@@ -33,7 +33,7 @@ exclude = ["benchmarks", "docs", "tests"]
 "*" = ["py.typed", "*.pyi"]
 
 [project.optional-dependencies]
-dev = ["PyTemplate[doc,test,lint,type]", "tox"]
+dev = ["PyTemplate[doc,test,lint,type]", "tox", "pre-commit"]
 doc = ["pdoc"]
 test = ["pytest", "coverage", "pytest-xdist"]
 lint = ["pylint", "ruff"]
