@@ -22,6 +22,7 @@ release = "v0.0.1"
 
 extensions = [
     "sphinx.ext.duration",
+    "sphinx.ext.viewcode",
     "sphinx.ext.autodoc",
     "sphinx.ext.autosummary",
     "sphinx.ext.napoleon",
@@ -36,3 +37,4 @@ exclude_patterns = []
 
 html_theme = "sphinx_rtd_theme"
 html_static_path = ["_static"]
+html_css_files = ["custom.css"]
