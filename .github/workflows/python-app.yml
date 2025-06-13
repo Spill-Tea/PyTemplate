@@ -19,7 +19,7 @@ jobs:
       - name: Checkout PyTemplate Project
         uses: actions/checkout@v4
 
-      - name: Set up Python ${{ matrix.python-version }}
+      - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version-file: .python-version-default
@@ -37,6 +37,9 @@ jobs:
       - name: Static Type Safety Check
         if: always()
         run: tox -e type
+
+      - name: Confirm Documentation Builds
+        run: tox -e docs
 
   tests:
     runs-on: ubuntu-latest
