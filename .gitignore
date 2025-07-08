@@ -18,6 +18,7 @@
 !tox.ini
 !requirements.txt
 !.python-version-default
+!rename.py
 
 # recursively re-ignore
 __pycache__
