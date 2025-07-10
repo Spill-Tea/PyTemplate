@@ -168,7 +168,7 @@ class CustomPythonLexer(PythonLexer):
     def __init__(self, **options) -> None:
         super().__init__(**options)
         self._stack = deque[int]()
-        self.n_brackets = int(options.get("n_brackets", 3))
+        self.n_brackets = int(options.get("n_brackets", 4))
 
     def _enter(self) -> _TokenType:
         """Retrieve next token in cycle."""
