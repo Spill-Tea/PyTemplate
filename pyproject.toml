@@ -86,8 +86,18 @@ module-naming-style = "any"
 [tool.pylint.format]
 max-line-length = 88
 
-# [tool.pylint."messages control"]
-# disable = []
+[tool.pylint."messages control"]
+disable = [
+  "R1731", # consider-using-max-builtin
+]
+
+[tool.pylint."*.pyi"]
+# https://github.com/pylint-dev/pylint/issues/9096
+# https://github.com/pylint-dev/pylint/issues/9417
+disable = [
+  "W0613", # unused-argument
+  "W0231", # super-init-not-called
+]
 
 [tool.ruff]
 line-length = 88
