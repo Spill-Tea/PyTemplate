@@ -94,6 +94,8 @@ class MixinLexer(RegexLexer):
             idx: int = self._stack.pop()
             return get_bracket_level(idx)
 
+        # NOTE: Only additional ending brackets trigger this (e.g. `{{ }}}` ).
+        # NOTE: We are not attempting to detect correct matching brackets (e.g. `(]` )
         except IndexError:
             return Punctuation.Error
 
@@ -216,11 +218,12 @@ python_tokens["numbers"] = [
 
 
 class CustomPythonLexer(MixinLexer, PythonLexer):
-    """Enhanced regex-based python Lexer.
+    """Custom enhanced regex-based python lexer.
 
     Notes:
         1. Implemented a simple stack based rainbow bracket colorizer.
-            * limitation: Only detects errors that close more brackets than opens.
+            * limitation: Only detects errors that close more brackets than it opens.
+            * limitation: No attempt is made to confirm matching closing brackets.
         2. Highlight Docstring titles (assumes google docstring format)
         3. Improved highlighting function calls (with limitations)
         4. Modify display of number components which indicate a different base number.
@@ -279,9 +282,11 @@ cython_tokens["name"].insert(
     (r"\b([a-zA-Z_]\w*)(?=\s*\()", Name.Function),
 )
 cython_tokens["cdef"] = [
+    # include packed keyword
     (r"(public|readonly|extern|api|inline|packed)\b", Keyword.Reserved),
-    # Specialize Name.Class, Name.Function, vs Name.Variable
+    # Specialize Name.Class vs Name.Function vs Name.Variable tokens
     (
+        # include cppclass keyword
         r"(struct|enum|union|class|cppclass)\b(\s+)([a-zA-Z_]\w*)",
         bygroups(Keyword.Declare, Whitespace, Name.Class),
         "#pop",
@@ -296,15 +301,151 @@ cython_tokens["cdef"] = [
     (r"[a-zA-Z_]\w*", Keyword.Type),
     (r".", Text),
 ]
+# Define Keyword.Constant token
 cython_tokens["keywords"].append(
     (words(("True", "False", "None", "NULL"), suffix=r"\b"), Keyword.Constant)
 )
+cython_tokens["keywords"][_find(cython_tokens["keywords"], Keyword, _get_index(1))] = (
+    words(
+        (
+            "assert",
+            "async",
+            "await",
+            "break",
+            "by",
+            "continue",
+            "ctypedef",
+            "del",
+            "elif",
+            "else",
+            "except",
+            "except?",
+            "exec",
+            "finally",
+            "for",
+            "fused",
+            "gil",
+            "global",
+            "if",
+            "include",
+            "lambda",
+            "new",  # added - relevant for c++ syntax
+            "nogil",
+            "pass",
+            "print",
+            "raise",
+            "return",
+            "try",
+            "while",
+            "yield",
+            "as",
+            "with",
+        ),
+        suffix=r"\b",
+    ),
+    Keyword,
+)
+# Redefine Name.Builtin.Pseudo token (to not include Keyword.Constant values)
 cython_tokens["builtins"][
     _find(cython_tokens["builtins"], Name.Builtin.Pseudo, _get_index(1))
 ] = (r"(?<!\.)(self|cls|Ellipsis|NotImplemented)\b", Name.Builtin.Pseudo)
+cython_tokens["builtins"][
+    _find(cython_tokens["builtins"], Name.Builtin, _get_index(1))
+] = (
+    words(
+        (
+            "__import__",
+            "abs",
+            "all",
+            "any",
+            "apply",
+            "basestring",
+            "bin",
+            "bint",
+            "bool",
+            "buffer",
+            "bytearray",
+            "bytes",
+            "callable",
+            "char",  # added
+            "chr",
+            "classmethod",
+            "cmp",
+            "coerce",
+            "compile",
+            "complex",
+            "delattr",
+            "dict",
+            "dir",
+            "divmod",
+            "enumerate",
+            "eval",
+            "execfile",
+            "exit",
+            "file",
+            "filter",
+            "float",
+            "frozenset",
+            "getattr",
+            "globals",
+            "hasattr",
+            "hash",
+            "hex",
+            "id",
+            "input",
+            "int",
+            "intern",
+            "isinstance",
+            "issubclass",
+            "iter",
+            "len",
+            "list",
+            "locals",
+            "long",
+            "map",
+            "max",
+            "min",
+            "next",
+            "object",
+            "oct",
+            "open",
+            "ord",
+            "pow",
+            "property",
+            "Py_ssize_t",
+            "range",
+            "raw_input",
+            "reduce",
+            "reload",
+            "repr",
+            "reversed",
+            "round",
+            "set",
+            "setattr",
+            "slice",
+            "sorted",
+            "staticmethod",
+            "ssize_t",  # added
+            "str",
+            "sum",
+            "super",
+            "tuple",
+            "type",
+            "unichr",
+            "unicode",
+            "unsigned",
+            "vars",
+            "xrange",
+            "zip",
+        ),
+        prefix=r"(?<!\.)",
+        suffix=r"\b",
+    ),
+    Name.Builtin,
+)
 
 
 class CustomCythonLexer(MixinLexer, CythonLexer):
-    """Custom enhanced cython regex-based lexer."""
+    """Custom enhanced regex-based cython lexer."""
 
     tokens: ClassVar[dict[str, list]] = cython_tokens
