@@ -33,13 +33,14 @@ from collections import deque
 from collections.abc import Iterator
 from typing import ClassVar
 
-from pygments.lexer import bygroups, include
-from pygments.lexers.python import PythonLexer
+from pygments.lexer import bygroups, combined, include, words
+from pygments.lexers.python import CythonLexer, PythonLexer, RegexLexer
 from pygments.token import (
     Comment,
     Keyword,
     Name,
     Number,
+    Operator,
     Punctuation,
     String,
     Text,
@@ -63,112 +64,22 @@ def _get_index(n: int):
     return inner
 
 
-root: list = [
-    (r"\n", Whitespace),
-    (  # single line docstrings (edge case)
-        r'^(\s*)([rRuUbB]{,2})("""(?:.)*?""")',
-        bygroups(Whitespace, String.Affix, String.Doc),
-    ),
-    (  # Modfied triple double quote docstrings to highlight docstring titles
-        r'^(\s*)([rRuUbB]{,2})(""")',
-        bygroups(Whitespace, String.Affix, String.Doc),
-        "docstring-double",
-    ),
-    (  # Intentionally treat text encapsulated within single triple quotes as String
-        r"^(\s*)([rRuUbB]{,2})('''(?:.|\n)*?''')",
-        bygroups(Whitespace, String.Affix, String),
-    ),
-    (r"\A#!.+$", Comment.Hashbang),
-    (
-        # Format Special Common Keyword Comments
-        # NOTE: Must come before Comment.Single token in order to be matched.
-        r"(#\s*)(TODO|FIXME|NOTE|BUG|HACK|XXX)(:?)(.*$)",
-        bygroups(Comment.Single, Comment.Special, Comment.Special, Comment.Single),
-    ),
-    (r"#.*$", Comment.Single),
-    (r"\\\n", Text),
-    (r"\\", Text),
-    include("keywords"),
-    include("soft-keywords"),
-    (
-        r"(def)((?:\s|\\\s)+)",
-        bygroups(Keyword.Declare, Whitespace),
-        "funcname",
-    ),
-    (
-        r"(class)((?:\s|\\\s)+)",
-        bygroups(Keyword.Declare, Whitespace),
-        "classname",
-    ),
-    (
-        r"(from)((?:\s|\\\s)+)",
-        bygroups(Keyword.Namespace, Whitespace),
-        "fromimport",
-    ),
-    (
-        r"(import)((?:\s|\\\s)+)",
-        bygroups(Keyword.Namespace, Whitespace),
-        "import",
-    ),
-    include("expr"),
-]
-
-
-python_tokens: dict[str, list] = PythonLexer.tokens.copy()
-python_tokens["root"] = root
-python_tokens["docstring-double"] = [
-    (
-        r"(?<=\n)(\s*)(Args|Attributes|Returns|Raises|"
-        r"Examples|Yields|References|Notes|Equations)(:)(\s*)",
-        bygroups(Whitespace, String.Doc.Title, String.Doc, Whitespace),
-    ),
-    (r'^\s*(?:""")', String.Doc, "#pop"),
-    (r".+[\r\n]*", String.Doc),
-]
-
-# Tokenize function names when used (i.e. function calls)
-# NOTE: Must be inserted before general `Name` token but after `Name.Builtins` token
-# NOTE: Implementation limitations -> we cannot distinguish between class and function
-#       calls using regex based parsing alone (i.e without semantic analysis).
-python_tokens["name"].insert(
-    _find(python_tokens["name"], Name, _get_index(1)),
-    (r"\b([a-zA-Z_]\w*)(?=\s*\()", Name.Function),
-)
-
-python_tokens["numbers"] = [
-    (
-        r"(\d(?:_?\d)*\.(?:\d(?:_?\d)*)?|(?:\d(?:_?\d)*)?\.\d(?:_?\d)*)"
-        r"([eE][+-]?\d(?:_?\d)*)?([jJ]?)",
-        bygroups(Number.Float, Number.Float, Number.Other),
-    ),
-    (r"(\d(?:_?\d)*[eE][+-]?\d(?:_?\d)*)([jJ]?)", bygroups(Number.Float, Number.Other)),
-    (r"(0[oO])((?:_?[0-7])+)", bygroups(Number.Other, Number.Oct)),
-    (r"(0[bB])((?:_?[01])+)", bygroups(Number.Other, Number.Bin)),
-    (r"(0[xX])((?:_?[a-fA-F0-9])+)", bygroups(Number.Other, Number.Hex)),
-    (r"(\d(?:_?\d)*)([jJ]?)", bygroups(Number.Integer, Number.Other)),
-]
-
-
-class CustomPythonLexer(PythonLexer):
-    """Enhanced regex-based python Lexer.
+class MixinLexer(RegexLexer):
+    """Regex Mixin Lexer class.
 
     Notes:
-        1. Implemented a simple stack based rainbow bracket colorizer.
-            * limitation: Only detects errors that close more brackets than opens.
-        2. Highlight Docstring titles (assumes google docstring format)
-        3. Improved highlighting function calls (with limitations)
-        4. Modify display of number components which indicate a different base number.
+        1. Supports primitive rainbow bracket coloring.
+        2. Supports primitive constant declaration (uppercase variables)
 
     """
 
     n_brackets: int
     _stack: deque[int]
-    tokens: ClassVar[dict[str, list]] = python_tokens
 
     def __init__(self, **options) -> None:
+        self.n_brackets = int(options.pop("n_brackets", 4))
         super().__init__(**options)
         self._stack = deque[int]()
-        self.n_brackets = int(options.get("n_brackets", 4))
 
     def _enter(self) -> _TokenType:
         """Retrieve next token in cycle."""
@@ -199,11 +110,201 @@ class CustomPythonLexer(PythonLexer):
 
             elif token is Punctuation:
                 match value:
-                    case "(" | "[" | "{":
+                    case "(" | "[" | "{" | "<":
                         _token = self._enter()
-                    case "}" | "]" | ")":
+                    case "}" | "]" | ")" | ">":
                         _token = self._exit()
                     case _:
                         ...
 
             yield idx, _token, value
+
+
+docstrings: list = [
+    (  # single line docstrings (edge case)
+        r'^(\s*)([rRuUbB]{,2})("""(?:.)*?""")',
+        bygroups(Whitespace, String.Affix, String.Doc),
+    ),
+    (  # Modfied triple double quote docstrings to highlight docstring titles
+        r'^(\s*)([rRuUbB]{,2})(""")',
+        bygroups(Whitespace, String.Affix, String.Doc),
+        "docstring-double-quotes",
+    ),
+    (  # Intentionally treat text encapsulated within single triple quotes as String
+        r"^(\s*)([rRuUbB]{,2})('''(?:.|\n)*?''')",
+        bygroups(Whitespace, String.Affix, String),
+    ),
+]
+
+comments: list = [
+    (r"\A#!.+$", Comment.Hashbang),
+    # Format Special Common Keywords in Comments
+    (
+        r"(#\s*)(TODO|FIXME|NOTE|BUG|HACK|XXX)(.*$)",
+        bygroups(Comment.Single, Comment.Special, Comment.Single),
+    ),
+    (r"#.*$", Comment.Single),
+]
+
+
+python_root: list = [
+    (r"\n", Whitespace),
+    *docstrings,
+    *comments,
+    (r"\\\n", Text),
+    (r"\\", Text),
+    include("keywords"),
+    include("soft-keywords"),
+    (
+        r"(def)((?:\s|\\\s)+)",
+        bygroups(Keyword.Declare, Whitespace),
+        "funcname",
+    ),
+    (
+        r"(class)((?:\s|\\\s)+)",
+        bygroups(Keyword.Declare, Whitespace),
+        "classname",
+    ),
+    (
+        r"(from)((?:\s|\\\s)+)",
+        bygroups(Keyword.Namespace, Whitespace),
+        "fromimport",
+    ),
+    (
+        r"(import)((?:\s|\\\s)+)",
+        bygroups(Keyword.Namespace, Whitespace),
+        "import",
+    ),
+    include("expr"),
+]
+
+
+python_tokens: dict[str, list] = PythonLexer.tokens.copy()
+python_tokens["root"] = python_root
+python_tokens["docstring-double-quotes"] = [
+    (
+        r"(?<=\n)(\s*)(Args|Attributes|Returns|Raises|"
+        r"Examples|Yields|References|Notes|Equations)(:)(\s*)",
+        bygroups(Whitespace, String.Doc.Title, String.Doc, Whitespace),
+    ),
+    (r'^\s*(?:""")', String.Doc, "#pop"),
+    (r".+[\r\n]*", String.Doc),
+]
+
+# Tokenize function names when used (i.e. function calls)
+# NOTE: Must be inserted before general `Name` token but after `Name.Builtins` token
+# NOTE: Implementation limitations -> we cannot distinguish between class and function
+#       calls using regex based parsing alone (i.e without semantic analysis).
+python_tokens["name"].insert(
+    _find(python_tokens["name"], Name, _get_index(1)),
+    (r"\b([a-zA-Z_]\w*)(?=\s*\()", Name.Function),
+)
+
+# Tokenize segment of number literals declared in different base (non base 10)
+python_tokens["numbers"] = [
+    (
+        r"(\d(?:_?\d)*\.(?:\d(?:_?\d)*)?|(?:\d(?:_?\d)*)?\.\d(?:_?\d)*)"
+        r"([eE][+-]?\d(?:_?\d)*)?([jJ]?)",
+        bygroups(Number.Float, Number.Float, Number.Other),
+    ),
+    (r"(\d(?:_?\d)*[eE][+-]?\d(?:_?\d)*)([jJ]?)", bygroups(Number.Float, Number.Other)),
+    (r"(0[oO])((?:_?[0-7])+)", bygroups(Number.Other, Number.Oct)),
+    (r"(0[bB])((?:_?[01])+)", bygroups(Number.Other, Number.Bin)),
+    (r"(0[xX])((?:_?[a-fA-F0-9])+)", bygroups(Number.Other, Number.Hex)),
+    (r"(\d(?:_?\d)*)([jJ]?)", bygroups(Number.Integer, Number.Other)),
+]
+
+
+class CustomPythonLexer(MixinLexer, PythonLexer):
+    """Enhanced regex-based python Lexer.
+
+    Notes:
+        1. Implemented a simple stack based rainbow bracket colorizer.
+            * limitation: Only detects errors that close more brackets than opens.
+        2. Highlight Docstring titles (assumes google docstring format)
+        3. Improved highlighting function calls (with limitations)
+        4. Modify display of number components which indicate a different base number.
+
+    """
+
+    tokens: ClassVar[dict[str, list]] = python_tokens
+
+
+cython_root = [
+    (r"\n", Whitespace),
+    *docstrings,
+    (r"[^\S\n]+", Text),
+    *comments,
+    (r"[]{}:(),;[]", Punctuation),
+    (r"\\\n", Whitespace),
+    (r"\\", Text),
+    (r"(in|is|and|or|not)\b", Operator.Word),
+    (r"(<)([a-zA-Z0-9.?]+)(>)", bygroups(Punctuation, Keyword.Type, Punctuation)),
+    (r"!=|==|<<|>>|[-~+/*%=<>&^|.?]", Operator),
+    (
+        r"(from)(\d+)(<=)(\s+)(<)(\d+)(:)",
+        bygroups(
+            Keyword, Number.Integer, Operator, Whitespace, Operator, Name, Punctuation
+        ),
+    ),
+    include("keywords"),
+    (r"(def)(\s+)", bygroups(Keyword.Declare, Whitespace), "funcname"),
+    (r"(property)(\s+)", bygroups(Keyword.Type, Whitespace), "funcname"),
+    (r"(cp?def)(\s+)", bygroups(Keyword.Declare, Whitespace), "cdef"),
+    # (should actually start a block with only cdefs)
+    (r"(cdef)(:)", bygroups(Keyword.Declare, Punctuation)),
+    (r"(class|struct)(\s+)", bygroups(Keyword.Declare, Whitespace), "classname"),
+    (r"(from)(\s+)", bygroups(Keyword.Namespace, Whitespace), "fromimport"),
+    (r"(c?import)(\s+)", bygroups(Keyword.Namespace, Whitespace), "import"),
+    include("builtins"),
+    include("backtick"),
+    ('(?:[rR]|[uU][rR]|[rR][uU])"""', String, "tdqs"),
+    ("(?:[rR]|[uU][rR]|[rR][uU])'''", String, "tsqs"),
+    ('(?:[rR]|[uU][rR]|[rR][uU])"', String, "dqs"),
+    ("(?:[rR]|[uU][rR]|[rR][uU])'", String, "sqs"),
+    ('[uU]?"""', String, combined("stringescape", "tdqs")),
+    ("[uU]?'''", String, combined("stringescape", "tsqs")),
+    ('[uU]?"', String, combined("stringescape", "dqs")),
+    ("[uU]?'", String, combined("stringescape", "sqs")),
+    include("name"),
+    include("numbers"),
+]
+
+cython_tokens: dict[str, list] = CythonLexer.tokens.copy()
+cython_tokens["root"] = cython_root
+cython_tokens["numbers"] = python_tokens["numbers"]
+cython_tokens["docstring-double-quotes"] = python_tokens["docstring-double-quotes"]
+cython_tokens["name"].insert(
+    _find(cython_tokens["name"], Name, _get_index(1)),
+    (r"\b([a-zA-Z_]\w*)(?=\s*\()", Name.Function),
+)
+cython_tokens["cdef"] = [
+    (r"(public|readonly|extern|api|inline|packed)\b", Keyword.Reserved),
+    # Specialize Name.Class, Name.Function, vs Name.Variable
+    (
+        r"(struct|enum|union|class|cppclass)\b(\s+)([a-zA-Z_]\w*)",
+        bygroups(Keyword.Declare, Whitespace, Name.Class),
+        "#pop",
+    ),
+    (r"([a-zA-Z_]\w*)(\s*)(?=\()", bygroups(Name.Function, Whitespace), "#pop"),
+    (r"([a-zA-Z_]\w*)(\s*)(?=[:,=#\n]|$)", bygroups(Name.Variable, Whitespace), "#pop"),
+    (r"([a-zA-Z_]\w*)(\s*)(,)", bygroups(Name.Variable, Whitespace, Punctuation)),
+    (r"from\b", Keyword, "#pop"),
+    (r"as\b", Keyword),
+    (r":", Punctuation, "#pop"),
+    (r'(?=["\'])', Text, "#pop"),
+    (r"[a-zA-Z_]\w*", Keyword.Type),
+    (r".", Text),
+]
+cython_tokens["keywords"].append(
+    (words(("True", "False", "None", "NULL"), suffix=r"\b"), Keyword.Constant)
+)
+cython_tokens["builtins"][
+    _find(cython_tokens["builtins"], Name.Builtin.Pseudo, _get_index(1))
+] = (r"(?<!\.)(self|cls|Ellipsis|NotImplemented)\b", Name.Builtin.Pseudo)
+
+
+class CustomCythonLexer(MixinLexer, CythonLexer):
+    """Custom enhanced cython regex-based lexer."""
+
+    tokens: ClassVar[dict[str, list]] = cython_tokens
