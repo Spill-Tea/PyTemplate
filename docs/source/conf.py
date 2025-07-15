@@ -72,15 +72,27 @@ pygments_style = "styles.VSCodeDarkPlus"  # Use custom syntax highlighting (styl
 html_theme = "sphinx_rtd_theme"
 html_static_path = ["_static"]
 html_css_files = ["custom.css"]
+# html_logo = "_static/logo.png"
+github_url = "https://github.com/Spill-Tea/PyTemplate"
+
+# Theme options (specific to sphinx_rtd_theme)
+# https://github.com/readthedocs/sphinx_rtd_theme/blob/master/docs/configuring.rst#id7
+# html_theme_options = {}
 
 
 def setup(app: Sphinx) -> None:
     """Custom sphinx application startup setup."""
-    from lexers import CustomPythonLexer  # type: ignore
+    from lexers import CustomCythonLexer, CustomPythonLexer  # type: ignore
 
     # NOTE: overwrite default python lexer
     app.add_lexer("python", CustomPythonLexer)
     assert "python" in _lexer_registry, "python language not found in registry"
     assert _lexer_registry["python"] == CustomPythonLexer, (
+        "custom Lexer not found in registry."
+    )
+
+    app.add_lexer("cython", CustomCythonLexer)
+    assert "cython" in _lexer_registry, "python language not found in registry"
+    assert _lexer_registry["cython"] == CustomCythonLexer, (
         "custom Lexer not found in registry."
     )
