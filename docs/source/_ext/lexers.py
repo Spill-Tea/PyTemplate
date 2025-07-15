@@ -405,6 +405,7 @@ cython_tokens["builtins"][
             "dict",
             "dir",
             "divmod",
+            "double",  # added
             "enumerate",
             "eval",
             "execfile",
