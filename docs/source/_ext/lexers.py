@@ -254,9 +254,13 @@ cython_root = [
     (r"(def)(\s+)", bygroups(Keyword.Declare, Whitespace), "funcname"),
     (r"(property)(\s+)", bygroups(Keyword.Type, Whitespace), "funcname"),
     (r"(cp?def)(\s+)", bygroups(Keyword.Declare, Whitespace), "cdef"),
-    # (should actually start a block with only cdefs)
+    (r"(ctypedef)(\s+)", bygroups(Keyword.Declare, Whitespace), "ctypedef"),
     (r"(cdef)(:)", bygroups(Keyword.Declare, Punctuation)),
-    (r"(class|struct)(\s+)", bygroups(Keyword.Declare, Whitespace), "classname"),
+    (
+        r"(class|cppclass|struct)(\s+)",
+        bygroups(Keyword.Declare, Whitespace),
+        "classname",
+    ),
     (r"(from)(\s+)", bygroups(Keyword.Namespace, Whitespace), "fromimport"),
     (r"(c?import)(\s+)", bygroups(Keyword.Namespace, Whitespace), "import"),
     include("builtins"),
@@ -283,7 +287,7 @@ cython_tokens["name"].insert(
 )
 cython_tokens["cdef"] = [
     # include packed keyword
-    (r"(public|readonly|extern|api|inline|packed)\b", Keyword.Reserved),
+    (r"(public|readonly|extern|api|inline|packed|fused)\b", Keyword),
     # Specialize Name.Class vs Name.Function vs Name.Variable tokens
     (
         # include cppclass keyword
@@ -301,6 +305,26 @@ cython_tokens["cdef"] = [
     (r"[a-zA-Z_]\w*", Keyword.Type),
     (r".", Text),
 ]
+# Define new ctypedef context
+cython_tokens["ctypedef"] = [
+    (r"(public|readonly|extern|api|inline|packed|fused)\b", Keyword),
+    (
+        r"(\s*)([a-zA-Z_]\w*)(\s*)(:)",
+        bygroups(Whitespace, Name.Class, Whitespace, Punctuation),
+        "#pop",
+    ),
+    (
+        r"(struct|enum|union|class|cppclass)(\s+)([a-zA-Z_]\w*)",
+        bygroups(Keyword.Declare, Whitespace, Name.Class),
+        "#pop",
+    ),
+    (
+        r"([a-zA-Z_]\w*)(\s+)([a-zA-Z_]\w*)",
+        bygroups(Keyword.Type, Whitespace, Name.Class),
+        "#pop",
+    ),
+    (r"([a-zA-Z_]\w*)", Name.Class, "#pop"),
+]
 # Define Keyword.Constant token
 cython_tokens["keywords"].append(
     (words(("True", "False", "None", "NULL"), suffix=r"\b"), Keyword.Constant)
@@ -314,7 +338,7 @@ cython_tokens["keywords"][_find(cython_tokens["keywords"], Keyword, _get_index(1
             "break",
             "by",
             "continue",
-            "ctypedef",
+            # "ctypedef",
             "del",
             "elif",
             "else",
@@ -323,13 +347,15 @@ cython_tokens["keywords"][_find(cython_tokens["keywords"], Keyword, _get_index(1
             "exec",
             "finally",
             "for",
-            "fused",
+            # "fused",
             "gil",
             "global",
             "if",
             "include",
             "lambda",
+            "namespace",  # added
             "new",  # added - relevant for c++ syntax
+            "noexcept",  # added
             "nogil",
             "pass",
             "print",
@@ -349,6 +375,7 @@ cython_tokens["keywords"][_find(cython_tokens["keywords"], Keyword, _get_index(1
 cython_tokens["builtins"][
     _find(cython_tokens["builtins"], Name.Builtin.Pseudo, _get_index(1))
 ] = (r"(?<!\.)(self|cls|Ellipsis|NotImplemented)\b", Name.Builtin.Pseudo)
+# Redefine Name.Builtin token to include additional types
 cython_tokens["builtins"][
     _find(cython_tokens["builtins"], Name.Builtin, _get_index(1))
 ] = (
@@ -422,6 +449,7 @@ cython_tokens["builtins"][
             "round",
             "set",
             "setattr",
+            "size_t",  # added
             "slice",
             "sorted",
             "staticmethod",
