@@ -25,11 +25,11 @@ Python Example Snippet
    # NOTE: this is an example class
    class Example(object):
        """Example docstring.
-       
+
        Args:
             arg1 (str): argument 1
             arg2 (int): argument 2
-       
+
        Attributes:
             data (dict): data
 
