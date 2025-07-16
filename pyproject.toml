@@ -34,7 +34,7 @@ exclude = ["benchmarks", "docs", "tests"]
 
 [project.optional-dependencies]
 dev = ["PyTemplate[doc,test,lint,type]", "tox", "pre-commit"]
-doc = ["sphinx", "sphinx-rtd-theme"]
+doc = ["sphinx", "furo", "sphinx_multiversion"]
 test = ["pytest", "coverage", "pytest-xdist"]
 lint = ["pylint", "ruff"]
 type = ["mypy"]
