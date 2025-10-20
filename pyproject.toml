@@ -33,7 +33,8 @@ exclude = ["benchmarks", "docs", "tests"]
 "*" = ["py.typed", "*.pyi"]
 
 [project.optional-dependencies]
-dev = ["PyTemplate[doc,test,lint,type]", "tox", "pre-commit"]
+dev = ["PyTemplate[doc,test,lint,type,commit]", "tox"]
+commit = ["pre-commit"]
 doc = ["sphinx", "furo", "sphinx_multiversion"]
 test = ["pytest", "coverage", "pytest-xdist"]
 lint = ["pylint", "ruff"]
@@ -64,7 +65,6 @@ exclude_also = ["def __repr__", 'if __name__ == "__main__"']
 mypy_path = "PyTemplate"
 warn_unused_ignores = true
 allow_redefinition = false
-force_uppercase_builtins = true
 
 [tool.pylint.main]
 # extension-pkg-whitelist = []
