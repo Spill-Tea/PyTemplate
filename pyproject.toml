@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools>=67.6.1"]
+requires = ["setuptools>=68.2.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -8,10 +8,11 @@ authors = [{ name = "Jason C Del Rio", email = "spillthetea917@gmail.com" }]
 maintainers = [{ name = "Jason C Del Rio", email = "spillthetea917@gmail.com" }]
 description = "Project description here."
 license = { file = "LICENSE" }
-requires-python = ">=3.8"
+requires-python = ">=3.11"
 keywords = ["keyword1", "keyword2"]
 classifiers = ["Programming Language :: Python :: 3"]
-dynamic = ["version", "readme", "dependencies"]
+dynamic = ["version", "readme"]
+dependencies = []
 
 [project.urls]
 homepage = "https://github.com/Spill-Tea/PyTemplate"
@@ -20,7 +21,6 @@ issues = "https://github.com/Spill-Tea/PyTemplate/issues"
 [tool.setuptools.dynamic]
 version = { attr = "PyTemplate.__version__" }
 readme = { file = ["README.md"], content-type = "text/markdown" }
-dependencies = { file = ["requirements.txt"] }
 
 [tool.setuptools]
 package-dir = { "" = "src" }
@@ -32,9 +32,13 @@ exclude = ["benchmarks", "docs", "tests"]
 [tool.setuptools.package-data]
 "*" = ["py.typed", "*.pyi"]
 
+[tool.uv]
+build-constraint-dependencies = [
+  "certifi>=2026.10.19", # CVE-2026-012
+]
+
 [project.optional-dependencies]
-dev = ["PyTemplate[doc,test,lint,type,commit]", "tox"]
-commit = ["pre-commit"]
+dev = ["PyTemplate[doc,test,lint,type]"]
 doc = ["sphinx<9.0.0", "furo", "sphinx_multiversion"]
 test = ["pytest", "coverage", "pytest-xdist"]
 lint = ["pylint", "ruff"]
