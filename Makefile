@@ -63,12 +63,12 @@ commit:
 
 # create a local development environment
 env:
-  uv sync --locked --no-editable --no-default-groups
+	uv sync --locked --no-editable --no-default-groups
 
 # create a local development (editable) environment
 dev-env:
-  uv sync --locked --extra dev
+	uv sync --locked --extra dev
 
 # create or update a uv lock file
 lock:
-  uv lock
+	uv lock
