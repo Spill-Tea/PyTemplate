@@ -2,23 +2,24 @@
 /*
 
 # unignore folders
+!.github/
+!docs/
 !src/
 !tests/
-!docs/
-!.github/
 
 # unignore files
 !.gitignore
 !.gitattributes
-!setup.py
-!README.md
-!LICENSE
-!pyproject.toml
 !.pre-commit-config.yaml
-!tox.ini
-!requirements.txt
 !.python-version
+!LICENSE.md
+!Makefile
+!pyproject.toml
+!README.md
 !rename.py
+!requirements.txt
+!tox.ini
+!uv.lock
 
 # recursively re-ignore
 __pycache__
