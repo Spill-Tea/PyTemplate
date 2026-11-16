@@ -17,7 +17,7 @@
 !.pre-commit-config.yaml
 !tox.ini
 !requirements.txt
-!.python-version-default
+!.python-version
 !rename.py
 
 # recursively re-ignore
