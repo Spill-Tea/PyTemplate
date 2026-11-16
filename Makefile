@@ -54,12 +54,12 @@ clean-dev:
 # https://github.com/tox-dev/tox
 # https://github.com/tox-dev/tox-uv
 test:
-	uv run tox -p
+	uvx tox -p
 
 # run pre-commit hooks against all files (uses / requires prek)
 # https://github.com/j178/prek
 commit:
-	uv run prek run --all-files
+	uvx prek run --all-files
 
 # create a local development environment
 env:
@@ -72,3 +72,6 @@ dev-env:
 # create or update a uv lock file
 lock:
 	uv lock
+
+setup-dev: lock dev-env
+	uvx prek install -f
