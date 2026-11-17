@@ -18,6 +18,13 @@ dependencies = []
 homepage = "https://github.com/Spill-Tea/PyTemplate"
 issues = "https://github.com/Spill-Tea/PyTemplate/issues"
 
+[project.optional-dependencies]
+dev = ["PyTemplate[doc,test,lint,type]"]
+doc = ["sphinx<9.0.0", "furo", "sphinx_multiversion"]
+test = ["pytest", "coverage", "pytest-xdist"]
+lint = ["pylint", "ruff"]
+type = ["mypy"]
+
 [tool.setuptools.dynamic]
 version = { attr = "PyTemplate.__version__" }
 readme = { file = ["README.md"], content-type = "text/markdown" }
@@ -36,13 +43,6 @@ exclude = ["benchmarks", "docs", "tests"]
 build-constraint-dependencies = [
   "certifi>=2026.10.19", # CVE-2026-012
 ]
-
-[project.optional-dependencies]
-dev = ["PyTemplate[doc,test,lint,type]"]
-doc = ["sphinx<9.0.0", "furo", "sphinx_multiversion"]
-test = ["pytest", "coverage", "pytest-xdist"]
-lint = ["pylint", "ruff"]
-type = ["mypy"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
