@@ -17,7 +17,6 @@
 !pyproject.toml
 !README.md
 !rename.py
-!requirements.txt
 !tox.ini
 !uv.lock
 
