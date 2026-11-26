@@ -109,9 +109,9 @@ jobs:
 
       - name: Report Testing Coverage
         run: |
-          uvx --frozen coverage combine
-          uvx --frozen coverage report --format markdown | tee $GITHUB_STEP_SUMMARY
-          uvx --frozen coverage report
+          uvx coverage combine
+          uvx coverage report --format markdown | tee $GITHUB_STEP_SUMMARY
+          uvx coverage report
 
   license:
     runs-on: ubuntu-latest
